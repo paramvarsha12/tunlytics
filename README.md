@@ -1,47 +1,30 @@
-# Spotify Stats Dashboard (PKCE)
+# Tunlytics
 
-Fully functional Spotify Stats Dashboard built with **React + Tailwind + Axios**, using Spotify’s **OAuth 2.0 Authorization Code w/ PKCE** flow.
+A personal Spotify stats dashboard that shows what you've actually been listening to.
 
-## Features
+## What it does
 
-- **Login with Spotify** (Spotify-hosted auth, no credentials collected)
-- **PKCE token exchange** + **automatic refresh** (sessions don’t expire mid-use)
-- **Logout** clears the session
-- Stats across Spotify’s native time ranges:
-  - **Last 4 Weeks** (`short_term`)
-  - **Last 6 Months** (`medium_term`)
-  - **All Time** (`long_term`)
-- **Top Tracks** (artwork, title, artists)
-- **Top Artists** (image, genre tags)
-- **Top Genres** chart derived from Top Artists genres (no dedicated Spotify genre endpoint)
+- Connects to your Spotify account securely
+- Shows your top tracks, top artists across three time ranges — last 4 weeks, last 6 months, and all time
+- Generates a downloadable receipt of your listening history
+- Calculates a discovery score based on how underground your taste is
 
-## Setup
+## How it's built
 
-### 1) Create a Spotify app
+- **Frontend** — React + Vite + Tailwind, deployed on Vercel
+- **Backend** — Node.js + Express, deployed on Railway
+- **Auth** — Spotify OAuth 2.0, tokens stored as JWT cookies
+- **Styling** — Framer Motion for animations, Bebas Neue for the stat cards
 
-In the Spotify Developer Dashboard, create an app and add a Redirect URI that matches your local dev URL:
+## Running locally
 
-- `http://localhost:5173/callback`
+1. Clone the repo
+2. Create a Spotify app at developer.spotify.com and add `http://127.0.0.1:3001/auth/callback` as a redirect URI
+3. Copy `.env.example` to `.env` and fill in your Spotify credentials
+4. Run `npm run dev:full` to start both frontend and backend
 
-### 2) Configure environment variables
+## Notes
 
-Copy `.env.example` → `.env` and fill in:
-
-- `VITE_SPOTIFY_CLIENT_ID`
-- `VITE_SPOTIFY_REDIRECT_URI`
-
-### 3) Install and run
-
-```bash
-npm install
-npm run dev
-```
-
-Open the app and click **Login with Spotify**.
-
-## Notes / Constraints (by design)
-
-- No play counts: Spotify’s public API doesn’t expose them.
-- Genre breakdown is derived by counting **artist genre tags** from `/me/top/artists`.
-- Tokens are stored in **sessionStorage** (cleared when the tab closes).
-
+- Spotify doesn't expose play counts, so rankings are based on their own internal algorithm
+- Genre breakdown is derived from your top artists' genre tags
+- Discovery score is calculated from average artist popularity — lower popularity = higher score
