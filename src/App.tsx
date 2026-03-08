@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
@@ -6,6 +7,15 @@ import { ReceiptPage } from './pages/ReceiptPage'
 import { RequireAuth } from './components/RequireAuth'
 
 export default function App() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get('token')
+    if (token) {
+      localStorage.setItem('tunlytics_token', token)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
   return (
     <Routes>
       <Route path="/" element={<LoginPage />} />

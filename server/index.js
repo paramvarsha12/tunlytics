@@ -34,7 +34,7 @@ app.use(express.json())
 
 const isProd = process.env.NODE_ENV === 'production'
 
-// ─── JWT helpers ───────────────────────────────────────────────────────────
+// ─── JWT helpers ─────────────────────────────────────────────────────────────
 
 function signTokenCookie(res, tokens) {
   const jwt_token = jwt.sign(tokens, SESSION_SECRET, { expiresIn: '30d' })
@@ -56,6 +56,16 @@ function getTokensFromCookie(req) {
   }
 }
 
+function getTokensFromBearer(req) {
+  try {
+    const bearer = req.headers.authorization?.replace('Bearer ', '')
+    if (!bearer) return null
+    return jwt.verify(bearer, SESSION_SECRET)
+  } catch {
+    return null
+  }
+}
+
 function clearTokenCookie(res) {
   res.clearCookie('tunlytics_auth', {
     httpOnly: true,
@@ -64,7 +74,7 @@ function clearTokenCookie(res) {
   })
 }
 
-// ─── Spotify helpers ────────────────────────────────────────────────────────
+// ─── Spotify helpers ──────────────────────────────────────────────────────────
 
 async function exchangeCodeForTokens(code) {
   const body = new URLSearchParams({
@@ -107,8 +117,13 @@ async function refreshAccessToken(refreshToken) {
   }
 }
 
-async function getValidAccessToken(req, res) {
-  const tokens = getTokensFromCookie(req)
+async function resolveAccessToken(req, res) {
+  // Try cookie first
+  let tokens = getTokensFromCookie(req)
+
+  // Fall back to bearer token
+  if (!tokens) tokens = getTokensFromBearer(req)
+
   if (!tokens) return null
 
   if (Date.now() + 60_000 < tokens.expiresAt) return tokens.accessToken
@@ -126,7 +141,7 @@ async function getValidAccessToken(req, res) {
 
 function requireAuth(handler) {
   return async (req, res, next) => {
-    const accessToken = await getValidAccessToken(req, res)
+    const accessToken = await resolveAccessToken(req, res)
     if (!accessToken) return res.status(401).json({ error: 'unauthenticated' })
     req.accessToken = accessToken
     return handler(req, res, next)
@@ -141,7 +156,7 @@ async function spotifyGet(accessToken, path, params = {}) {
   return res.data
 }
 
-// ─── Auth routes ────────────────────────────────────────────────────────────
+// ─── Auth routes ──────────────────────────────────────────────────────────────
 
 app.get('/auth/login', (req, res) => {
   const state = crypto.randomBytes(16).toString('hex')
@@ -169,8 +184,9 @@ app.get('/auth/callback', async (req, res) => {
 
   try {
     const tokens = await exchangeCodeForTokens(String(code))
+    const jwt_token = jwt.sign(tokens, SESSION_SECRET, { expiresIn: '30d' })
     signTokenCookie(res, tokens)
-    return res.redirect(`${FRONTEND_URL}/dashboard`)
+    return res.redirect(`${FRONTEND_URL}/dashboard?token=${jwt_token}`)
   } catch (e) {
     console.error('Token exchange failed', e?.response?.data || e.message)
     return res.redirect(`${FRONTEND_URL}/?authError=token_exchange_failed`)
@@ -183,7 +199,7 @@ app.post('/auth/logout', (req, res) => {
 })
 
 app.get('/auth/status', async (req, res) => {
-  const accessToken = await getValidAccessToken(req, res)
+  const accessToken = await resolveAccessToken(req, res)
   if (!accessToken) return res.json({ authenticated: false })
 
   try {
@@ -206,7 +222,7 @@ app.get('/auth/status', async (req, res) => {
   }
 })
 
-// ─── Stats routes ────────────────────────────────────────────────────────────
+// ─── Stats routes ─────────────────────────────────────────────────────────────
 
 function deriveGenresFromArtists(artists) {
   const weights = new Map()
