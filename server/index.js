@@ -186,7 +186,7 @@ app.get('/auth/callback', async (req, res) => {
     const tokens = await exchangeCodeForTokens(String(code))
     const jwt_token = jwt.sign(tokens, SESSION_SECRET, { expiresIn: '30d' })
     signTokenCookie(res, tokens)
-    return res.redirect(`${FRONTEND_URL}/dashboard?token=${jwt_token}`)
+    return res.redirect(`${FRONTEND_URL}/dashboard/short?token=${jwt_token}`)
   } catch (e) {
     console.error('Token exchange failed', e?.response?.data || e.message)
     return res.redirect(`${FRONTEND_URL}/?authError=token_exchange_failed`)
